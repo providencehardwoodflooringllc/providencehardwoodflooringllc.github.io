@@ -51,16 +51,59 @@ if (menuBtn && mobile) {
     const a=getAudio(); if(!a)return;
     if(a.state==='suspended')a.resume().catch(()=>{});
     const now=a.currentTime;
-    const master=a.createGain(); master.gain.setValueAtTime(.0001,now); master.connect(a.destination);
+
+    // More natural, construction-inspired sound design: filtered noise for wood/cardboard,
+    // low impacts for movement, and restrained tonal layers for finished reveals.
+    const out=a.createGain();
+    out.gain.setValueAtTime(.0001,now);
+    out.gain.exponentialRampToValueAtTime(.72,now+.012);
+    out.connect(a.destination);
+
+    const osc=(type,f1,f2,delay,dur,vol)=>{
+      const o=a.createOscillator(), g=a.createGain();
+      const t=now+delay;
+      o.type=type; o.frequency.setValueAtTime(f1,t);
+      if(f2) o.frequency.exponentialRampToValueAtTime(Math.max(20,f2),t+dur);
+      g.gain.setValueAtTime(.0001,t);
+      g.gain.exponentialRampToValueAtTime(vol,t+.012);
+      g.gain.exponentialRampToValueAtTime(.0001,t+dur);
+      o.connect(g).connect(out); o.start(t); o.stop(t+dur+.03);
+    };
+    const noise=(delay,dur,vol,low=180,high=2400)=>{
+      const len=Math.max(1,Math.floor(a.sampleRate*dur));
+      const b=a.createBuffer(1,len,a.sampleRate), d=b.getChannelData(0);
+      let last=0;
+      for(let i=0;i<len;i++){ const white=Math.random()*2-1; last=last*.72+white*.28; d[i]=last; }
+      const src=a.createBufferSource(), bp=a.createBiquadFilter(), g=a.createGain();
+      const t=now+delay;
+      src.buffer=b; bp.type='bandpass'; bp.frequency.value=(low+high)/2; bp.Q.value=.7;
+      g.gain.setValueAtTime(.0001,t); g.gain.exponentialRampToValueAtTime(vol,t+.018); g.gain.exponentialRampToValueAtTime(.0001,t+dur);
+      src.connect(bp).connect(g).connect(out); src.start(t); src.stop(t+dur+.02);
+    };
+
     if(kind==='spin'){
-      const o=a.createOscillator(),g=a.createGain(); o.type='triangle'; o.frequency.setValueAtTime(120,now); o.frequency.exponentialRampToValueAtTime(210,now+.16); g.gain.setValueAtTime(.0001,now); g.gain.exponentialRampToValueAtTime(.055,now+.025); g.gain.exponentialRampToValueAtTime(.0001,now+.18); o.connect(g).connect(master); o.start(now);o.stop(now+.2); master.gain.exponentialRampToValueAtTime(.9,now+.02); master.gain.exponentialRampToValueAtTime(.0001,now+.22);
+      // Soft air/wood whoosh as the 3D object rotates.
+      noise(0,.34,.11,260,1800);
+      osc('sine',92,128,0,.28,.055);
+      osc('triangle',210,310,.035,.20,.022);
     }else if(kind==='open'){
-      const o=a.createOscillator(),g=a.createGain(); o.type='sawtooth'; o.frequency.setValueAtTime(170,now);o.frequency.exponentialRampToValueAtTime(72,now+.24);g.gain.setValueAtTime(.0001,now);g.gain.exponentialRampToValueAtTime(.045,now+.02);g.gain.exponentialRampToValueAtTime(.0001,now+.28);o.connect(g).connect(master);o.start(now);o.stop(now+.3);master.gain.exponentialRampToValueAtTime(.85,now+.02);master.gain.exponentialRampToValueAtTime(.0001,now+.31);
+      // Cardboard/wood flap movement + a small physical knock.
+      noise(0,.28,.14,120,1150);
+      noise(.09,.20,.07,500,2600);
+      osc('sine',105,62,.02,.30,.08);
+      osc('triangle',185,92,.11,.16,.035);
     }else if(kind==='reveal'){
-      [330,494,659].forEach((f,i)=>{const o=a.createOscillator(),g=a.createGain();o.type='sine';o.frequency.value=f;const t=now+i*.055;g.gain.setValueAtTime(.0001,t);g.gain.exponentialRampToValueAtTime(.035,t+.025);g.gain.exponentialRampToValueAtTime(.0001,t+.42);o.connect(g).connect(master);o.start(t);o.stop(t+.45)});master.gain.exponentialRampToValueAtTime(.8,now+.02);master.gain.exponentialRampToValueAtTime(.0001,now+.65);
+      // Clean premium reveal: subtle lift, impact, then warm harmonic shimmer.
+      noise(0,.38,.055,500,3200);
+      osc('sine',82,58,0,.34,.075);
+      [293.66,440,587.33].forEach((f,i)=>osc('sine',f,f,0.10+i*.055,.48,.024-i*.003));
+      osc('triangle',1760,880,.08,.18,.012);
     }else{
-      const o=a.createOscillator(),g=a.createGain();o.type='sine';o.frequency.value=480;g.gain.setValueAtTime(.02,now);g.gain.exponentialRampToValueAtTime(.0001,now+.09);o.connect(g).connect(master);o.start(now);o.stop(now+.1);master.gain.setValueAtTime(.7,now);master.gain.exponentialRampToValueAtTime(.0001,now+.11);
+      // Short tactile UI/transition click rather than an electronic beep.
+      noise(0,.055,.055,650,3000);
+      osc('sine',150,105,0,.085,.032);
     }
+    out.gain.exponentialRampToValueAtTime(.0001,now+.72);
   }
 
   const soundBtn=document.querySelector('.phf-sound-toggle');
