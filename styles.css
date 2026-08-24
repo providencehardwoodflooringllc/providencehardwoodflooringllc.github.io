@@ -1204,3 +1204,265 @@ html.phf-cinematic-lock body{overscroll-behavior:auto!important}
       transparent 70%);
   filter:blur(1.5px);
 }
+
+/* v13 project archive — deliberately isolated so the original v11 UI/animations stay untouched */
+.phf-project-grid{display:grid;grid-template-columns:repeat(12,1fr);gap:16px;align-items:start}
+.phf-project-photo{grid-column:span 6;margin:0;position:relative;overflow:hidden;background:#30241c;min-height:520px;cursor:zoom-in}
+.phf-project-photo:nth-child(3n){grid-column:span 5}.phf-project-photo:nth-child(4n){grid-column:span 7}
+.phf-project-photo img{width:100%;height:100%;position:absolute;inset:0;object-fit:cover;transition:transform .8s cubic-bezier(.2,.8,.2,1),filter .45s ease;filter:saturate(.9) contrast(1.02)}
+.phf-project-photo:hover img{transform:scale(1.045)}
+.phf-project-photo figcaption{position:absolute;left:0;bottom:0;z-index:2;background:var(--paper);padding:16px 20px;font-family:'Playfair Display',serif;font-size:1.22rem;max-width:82%}
+.phf-project-photo:after{content:"↗";position:absolute;right:18px;top:18px;width:44px;height:44px;border-radius:50%;display:grid;place-items:center;background:rgba(239,233,220,.9);color:var(--ink);font-size:1.1rem;transform:translateY(-8px);opacity:0;transition:.3s ease}
+.phf-project-photo:hover:after{transform:none;opacity:1}
+.phf-lightbox{position:fixed;inset:0;z-index:9999;background:rgba(17,14,12,.94);display:grid;place-items:center;padding:5vw;opacity:0;pointer-events:none;transition:opacity .25s ease}
+.phf-lightbox.open{opacity:1;pointer-events:auto}.phf-lightbox img{max-width:min(1100px,92vw);max-height:86vh;object-fit:contain;box-shadow:0 30px 100px rgba(0,0,0,.45)}
+.phf-lightbox button{position:fixed;right:28px;top:22px;border:0;background:transparent;color:#fff;font:300 3rem/1 Arial;cursor:pointer}
+@media(max-width:760px){.phf-project-grid{grid-template-columns:1fr}.phf-project-photo,.phf-project-photo:nth-child(3n),.phf-project-photo:nth-child(4n){grid-column:1;min-height:420px}}
+@media(max-width:560px){.phf-project-photo{min-height:330px}.phf-project-photo figcaption{font-size:1rem;padding:12px 14px}}
+
+
+/* =========================================================
+   V14 — REAL PROJECT SCROLL-LOCK TRANSFORMATION
+   Sticky scene: BEFORE -> IN PROGRESS -> FINISHED, then releases.
+   ========================================================= */
+.phf-project-story{
+  height:380vh;
+  min-height:2600px;
+  position:relative;
+  background:#17120e;
+}
+.phf-project-story-pin{
+  position:sticky;
+  top:0;
+  height:100vh;
+  min-height:620px;
+  overflow:hidden;
+  background:#17120e;
+  isolation:isolate;
+}
+.phf-story-photo{
+  position:absolute;
+  inset:-3%;
+  z-index:1;
+  opacity:0;
+  transform:scale(1.07) translate3d(0,18px,0);
+  will-change:opacity,transform,filter;
+}
+.phf-story-photo img{
+  width:100%;height:100%;display:block;object-fit:cover;
+  filter:saturate(.82) contrast(1.05) brightness(.82);
+}
+.phf-story-before{opacity:1;transform:scale(1.035)}
+.phf-story-shade{
+  position:absolute;inset:0;z-index:4;pointer-events:none;
+  background:
+    linear-gradient(90deg,rgba(14,10,7,.72) 0%,rgba(14,10,7,.28) 45%,rgba(14,10,7,.08) 72%),
+    linear-gradient(0deg,rgba(14,10,7,.42),transparent 45%,rgba(14,10,7,.18));
+}
+.phf-project-story-copy{
+  position:relative;z-index:8;height:100%;
+  display:flex;flex-direction:column;justify-content:flex-end;align-items:flex-start;
+  padding-bottom:10vh;pointer-events:none;
+}
+.phf-project-story-copy>div{max-width:720px}
+.phf-project-story-copy .phf-kicker{color:#eee2cf}
+.phf-story-title{
+  margin:.18em 0 .16em;
+  color:#f6f0e7;
+  font-size:clamp(4.2rem,10vw,10rem);
+  line-height:.82;
+  letter-spacing:-.065em;
+  text-shadow:0 10px 50px rgba(0,0,0,.25);
+}
+.phf-story-caption{max-width:520px;color:rgba(246,240,231,.78);font-size:clamp(1rem,1.3vw,1.22rem)}
+.phf-story-link{margin-top:28px;pointer-events:auto}
+.phf-story-ui{
+  position:absolute;z-index:9;right:clamp(22px,4vw,70px);top:50%;transform:translateY(-50%);
+  display:flex;flex-direction:column;align-items:flex-end;gap:17px;color:#f4eadc;
+  font-size:.72rem;letter-spacing:.18em;text-transform:uppercase;
+}
+.phf-story-stage-name{font-weight:800;min-width:112px;text-align:right}
+.phf-story-dots{display:flex;gap:8px}
+.phf-story-dots i{width:30px;height:2px;background:rgba(255,255,255,.26);transition:width .35s ease,background .35s ease}
+.phf-story-dots i.active{width:58px;background:#f4eadc}
+.phf-story-scroll{position:absolute;right:0;top:100%;margin-top:56px;white-space:nowrap;opacity:.7;transition:opacity .3s ease}
+.phf-story-scroll span{display:inline-block;margin-left:8px;animation:phfStoryNudge 1.35s ease-in-out infinite}
+@keyframes phfStoryNudge{0%,100%{transform:translateY(0)}50%{transform:translateY(7px)}}
+.phf-story-progress{z-index:12}
+.phf-project-story .phf-scene-progress span{width:var(--project-story-progress,0%)}
+
+@media(max-width:900px){
+  .phf-project-story{height:340vh;min-height:2350px}
+  .phf-project-story-pin{min-height:560px}
+  .phf-story-photo{inset:0}
+  .phf-story-photo img{object-position:center center}
+  .phf-project-story-copy{padding:0 22px 11vh}
+  .phf-story-title{font-size:clamp(3.5rem,18vw,6.4rem)}
+  .phf-story-ui{right:20px;top:28%;gap:12px}
+  .phf-story-scroll{display:none}
+}
+@media(max-width:560px){
+  .phf-project-story{height:320vh;min-height:2100px}
+  .phf-project-story-pin{min-height:520px}
+  .phf-story-shade{background:linear-gradient(0deg,rgba(12,9,7,.78) 0%,rgba(12,9,7,.15) 62%)}
+  .phf-story-ui{top:22%;right:16px}
+  .phf-story-caption{max-width:88%}
+  .phf-story-link{margin-top:18px}
+}
+@media(prefers-reduced-motion:reduce){
+  .phf-story-scroll span{animation:none}
+}
+
+
+/* =========================================================
+   V15 — PROJECT STORY REFINED LAYOUT
+   Keeps the V14 scroll-lock sequence, but presents the real
+   low-resolution project photos in a clean centered portrait card.
+   ========================================================= */
+.phf-project-story{
+  background:
+    radial-gradient(circle at 52% 46%, rgba(198,167,125,.10), transparent 32%),
+    linear-gradient(135deg,#17120e 0%,#100d0a 100%);
+}
+.phf-project-story-pin{
+  background:transparent;
+}
+.phf-story-photo{
+  inset:auto;
+  left:52%;
+  top:50%;
+  width:min(31vw,420px);
+  aspect-ratio:3/4;
+  height:auto;
+  border-radius:30px;
+  overflow:hidden;
+  background:#201a15;
+  border:1px solid rgba(244,234,220,.17);
+  box-shadow:0 30px 90px rgba(0,0,0,.38),0 0 0 8px rgba(255,255,255,.025);
+  transform:translate(-50%,-50%) scale(1.02);
+  transform-origin:center;
+}
+.phf-story-photo img{
+  width:100%;
+  height:100%;
+  object-fit:cover;
+  object-position:center;
+  border-radius:inherit;
+  filter:saturate(.94) contrast(1.02) brightness(.94);
+  image-rendering:auto;
+}
+.phf-story-before{opacity:1}
+.phf-story-shade{
+  z-index:4;
+  background:
+    radial-gradient(circle at 52% 50%,transparent 0 24%,rgba(12,9,7,.08) 45%,rgba(12,9,7,.40) 100%),
+    linear-gradient(90deg,rgba(10,8,6,.45),transparent 34%,transparent 70%,rgba(10,8,6,.35));
+}
+.phf-project-story-copy{
+  position:absolute;
+  z-index:8;
+  left:clamp(28px,5vw,84px);
+  top:50%;
+  transform:translateY(-50%);
+  width:min(29vw,430px);
+  height:auto;
+  display:block;
+  padding:0;
+  pointer-events:none;
+}
+.phf-project-story-copy>div{max-width:430px}
+.phf-project-story-copy .phf-kicker{
+  color:#d9c6aa;
+  margin-bottom:18px;
+}
+.phf-story-title{
+  margin:.08em 0 .18em;
+  font-size:clamp(3.1rem,5.7vw,6.4rem);
+  line-height:.88;
+  letter-spacing:-.06em;
+}
+.phf-story-caption{
+  max-width:390px;
+  margin:0;
+  color:rgba(246,240,231,.72);
+  font-size:clamp(.98rem,1.15vw,1.16rem);
+  line-height:1.65;
+}
+.phf-story-meta{
+  display:flex;
+  flex-wrap:wrap;
+  gap:9px;
+  margin-top:24px;
+}
+.phf-story-meta span{
+  display:inline-flex;
+  align-items:center;
+  gap:8px;
+  min-height:36px;
+  padding:8px 12px;
+  border:1px solid rgba(244,234,220,.12);
+  border-radius:999px;
+  background:rgba(255,255,255,.035);
+  color:rgba(246,240,231,.64);
+  font-size:.69rem;
+  letter-spacing:.09em;
+  text-transform:uppercase;
+  backdrop-filter:blur(8px);
+}
+.phf-story-meta b{color:#e6d2b4;font-size:.66rem}
+.phf-story-link{
+  margin-top:28px;
+  pointer-events:auto;
+}
+.phf-story-ui{
+  right:clamp(26px,5vw,82px);
+  top:50%;
+  gap:15px;
+}
+.phf-story-stage-name{
+  min-width:130px;
+  font-size:.76rem;
+  letter-spacing:.2em;
+}
+.phf-story-dots i{width:24px}
+.phf-story-dots i.active{width:52px}
+.phf-story-scroll{margin-top:48px}
+
+@media(max-width:1050px){
+  .phf-story-photo{left:56%;width:min(37vw,390px);border-radius:26px}
+  .phf-project-story-copy{left:28px;width:31vw}
+  .phf-story-ui{right:24px}
+  .phf-story-title{font-size:clamp(3rem,6vw,5.2rem)}
+}
+@media(max-width:760px){
+  .phf-project-story{height:330vh;min-height:2200px}
+  .phf-project-story-pin{min-height:620px}
+  .phf-story-photo{
+    left:50%;
+    top:45%;
+    width:min(68vw,330px);
+    border-radius:24px;
+  }
+  .phf-project-story-copy{
+    left:20px;
+    right:20px;
+    top:auto;
+    bottom:8.5vh;
+    transform:none;
+    width:auto;
+    padding:0;
+  }
+  .phf-project-story-copy>div{max-width:88%}
+  .phf-project-story-copy .phf-kicker{margin-bottom:8px}
+  .phf-story-title{font-size:clamp(2.6rem,12vw,4.4rem);margin-bottom:.12em}
+  .phf-story-caption{font-size:.95rem;line-height:1.5;max-width:88%}
+  .phf-story-meta{display:none}
+  .phf-story-link{margin-top:14px}
+  .phf-story-ui{top:22%;right:16px}
+}
+@media(max-width:480px){
+  .phf-project-story{height:315vh;min-height:2050px}
+  .phf-story-photo{top:42%;width:min(72vw,300px);border-radius:22px}
+  .phf-project-story-copy{bottom:6.5vh}
+  .phf-story-ui{top:17%}
+}

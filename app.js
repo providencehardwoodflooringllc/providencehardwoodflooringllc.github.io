@@ -170,6 +170,66 @@ if (menuBtn && mobile) {
   }
 
 
+  function renderProjectStory(){
+    const s=document.querySelector('[data-scene="project-story"]');
+    if(!s)return;
+    const p=progress(s);
+    s.style.setProperty('--project-story-progress',`${p*100}%`);
+
+    const before=s.querySelector('.phf-story-before');
+    const middle=s.querySelector('.phf-story-middle');
+    const after=s.querySelector('.phf-story-after');
+
+    // Long holds at each stage, with smooth cinematic crossfades between them.
+    const toMiddle=ease(clamp((p-.25)/.13));
+    const toAfter=ease(clamp((p-.57)/.13));
+
+    const beforeOpacity=1-toMiddle;
+    const middleOpacity=toMiddle*(1-toAfter);
+    const afterOpacity=toAfter;
+
+    if(before){
+      before.style.opacity=beforeOpacity;
+      before.style.transform=`translate(-50%,-50%) scale(${1.01+p*.018}) translate3d(0,${p*-5}px,0)`;
+      before.style.filter=`blur(${toMiddle*1.5}px)`;
+    }
+    if(middle){
+      middle.style.opacity=middleOpacity;
+      middle.style.transform=`translate(-50%,-50%) scale(${1.025-toMiddle*.012+toAfter*.008}) translate3d(0,${(1-toMiddle)*8-toAfter*4}px,0)`;
+      middle.style.filter=`blur(${Math.abs(.5-middleOpacity)*1.6}px)`;
+    }
+    if(after){
+      after.style.opacity=afterOpacity;
+      after.style.transform=`translate(-50%,-50%) scale(${1.02-toAfter*.01}) translate3d(0,${(1-toAfter)*8}px,0)`;
+      after.style.filter=`blur(${(1-toAfter)*1.4}px)`;
+    }
+
+    let stage=0;
+    if(p>=.38)stage=1;
+    if(p>=.70)stage=2;
+    const titles=['Before.','In progress.','Finished.'];
+    const captions=[
+      'The room before the transformation begins.',
+      'Old material out. New hardwood going in, one section at a time.',
+      'The finished floor brings the entire space back together.'
+    ];
+    const names=['BEFORE','IN PROGRESS','AFTER'];
+    const title=s.querySelector('.phf-story-title');
+    const caption=s.querySelector('.phf-story-caption');
+    const name=s.querySelector('.phf-story-stage-name');
+    if(title && title.dataset.stage!=stage){
+      title.dataset.stage=stage;
+      title.textContent=titles[stage];
+      title.animate([{opacity:.25,transform:'translateY(12px)'},{opacity:1,transform:'translateY(0)'}],{duration:380,easing:'cubic-bezier(.2,.8,.2,1)'});
+    }
+    if(caption)caption.textContent=captions[stage];
+    if(name)name.textContent=names[stage];
+    s.querySelectorAll('.phf-story-dots i').forEach((dot,i)=>dot.classList.toggle('active',i===stage));
+
+    const scroller=s.querySelector('.phf-story-scroll');
+    if(scroller)scroller.style.opacity=p>.82?0:.7;
+  }
+
   function renderQuote(){
     const s=document.querySelector('[data-scene="quote"]');
     if(!s)return;
@@ -219,6 +279,7 @@ if (menuBtn && mobile) {
     renderMaterial();
     renderServices();
     renderRenovation();
+    renderProjectStory();
     renderQuote();
     renderFinal();
     renderBridges();
@@ -233,4 +294,16 @@ if (menuBtn && mobile) {
 
   addEventListener('resize',render);
   render();
+})();
+
+// v13 project-photo lightbox
+(()=>{
+  const box=document.querySelector('.phf-lightbox');
+  if(!box)return;
+  const out=box.querySelector('img');
+  const close=()=>{box.classList.remove('open');box.setAttribute('aria-hidden','true');document.body.style.overflow=''};
+  document.querySelectorAll('.phf-project-photo img').forEach(img=>img.addEventListener('click',()=>{out.src=img.src;out.alt=img.alt;box.classList.add('open');box.setAttribute('aria-hidden','false');document.body.style.overflow='hidden'}));
+  box.querySelector('button').addEventListener('click',close);
+  box.addEventListener('click',e=>{if(e.target===box)close()});
+  document.addEventListener('keydown',e=>{if(e.key==='Escape')close()});
 })();
