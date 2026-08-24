@@ -1,0 +1,4 @@
+User-agent: *
+Allow: /
+
+Sitemap: https://providencehardwoodflooringllc.github.io/sitemap.xml
