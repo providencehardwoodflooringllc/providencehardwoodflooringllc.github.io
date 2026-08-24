@@ -7,7 +7,7 @@ if (menuBtn && mobile) {
 
 (() => {
   const items = document.querySelectorAll(
-    '.content-section > .shell, .service-row, .review-card, .finish-card, .contact-aside, .form, .proof, .story'
+    '.content-section > .shell, .service-row, .review-card, .finish-card, .contact-aside, .form, .proof, .story, .phf-project-photo'
   );
   if (!items.length) return;
   items.forEach(el => el.classList.add('reveal'));
@@ -30,6 +30,97 @@ if (menuBtn && mobile) {
     const r=scene.getBoundingClientRect();
     const travel=Math.max(1,scene.offsetHeight-innerHeight);
     return clamp(-r.top/travel);
+  }
+
+  // Lightweight synthesized sound design. Browsers only permit audio after a user gesture,
+  // so the sound button (or the first pointer/keyboard interaction) unlocks it.
+  let phfAudio=null;
+  let phfSoundEnabled=false;
+  let phfLastUnboxStage=-1;
+  let phfLastPortalStage=-1;
+  let phfLastProjectStage=-1;
+  function getAudio(){
+    if(phfAudio)return phfAudio;
+    const AC=window.AudioContext||window.webkitAudioContext;
+    if(!AC)return null;
+    phfAudio=new AC();
+    return phfAudio;
+  }
+  function tone(kind='tick'){
+    if(!phfSoundEnabled)return;
+    const a=getAudio(); if(!a)return;
+    if(a.state==='suspended')a.resume().catch(()=>{});
+    const now=a.currentTime;
+    const master=a.createGain(); master.gain.setValueAtTime(.0001,now); master.connect(a.destination);
+    if(kind==='spin'){
+      const o=a.createOscillator(),g=a.createGain(); o.type='triangle'; o.frequency.setValueAtTime(120,now); o.frequency.exponentialRampToValueAtTime(210,now+.16); g.gain.setValueAtTime(.0001,now); g.gain.exponentialRampToValueAtTime(.055,now+.025); g.gain.exponentialRampToValueAtTime(.0001,now+.18); o.connect(g).connect(master); o.start(now);o.stop(now+.2); master.gain.exponentialRampToValueAtTime(.9,now+.02); master.gain.exponentialRampToValueAtTime(.0001,now+.22);
+    }else if(kind==='open'){
+      const o=a.createOscillator(),g=a.createGain(); o.type='sawtooth'; o.frequency.setValueAtTime(170,now);o.frequency.exponentialRampToValueAtTime(72,now+.24);g.gain.setValueAtTime(.0001,now);g.gain.exponentialRampToValueAtTime(.045,now+.02);g.gain.exponentialRampToValueAtTime(.0001,now+.28);o.connect(g).connect(master);o.start(now);o.stop(now+.3);master.gain.exponentialRampToValueAtTime(.85,now+.02);master.gain.exponentialRampToValueAtTime(.0001,now+.31);
+    }else if(kind==='reveal'){
+      [330,494,659].forEach((f,i)=>{const o=a.createOscillator(),g=a.createGain();o.type='sine';o.frequency.value=f;const t=now+i*.055;g.gain.setValueAtTime(.0001,t);g.gain.exponentialRampToValueAtTime(.035,t+.025);g.gain.exponentialRampToValueAtTime(.0001,t+.42);o.connect(g).connect(master);o.start(t);o.stop(t+.45)});master.gain.exponentialRampToValueAtTime(.8,now+.02);master.gain.exponentialRampToValueAtTime(.0001,now+.65);
+    }else{
+      const o=a.createOscillator(),g=a.createGain();o.type='sine';o.frequency.value=480;g.gain.setValueAtTime(.02,now);g.gain.exponentialRampToValueAtTime(.0001,now+.09);o.connect(g).connect(master);o.start(now);o.stop(now+.1);master.gain.setValueAtTime(.7,now);master.gain.exponentialRampToValueAtTime(.0001,now+.11);
+    }
+  }
+
+  const soundBtn=document.querySelector('.phf-sound-toggle');
+  if(soundBtn){
+    soundBtn.addEventListener('click',()=>{
+      phfSoundEnabled=!phfSoundEnabled;
+      const a=getAudio(); if(a&&phfSoundEnabled)a.resume().catch(()=>{});
+      soundBtn.setAttribute('aria-pressed',String(phfSoundEnabled));
+      soundBtn.textContent=phfSoundEnabled?'Sound on':'Sound off';
+      soundBtn.setAttribute('aria-label',phfSoundEnabled?'Turn animation sound off':'Turn animation sound on');
+      if(phfSoundEnabled)tone('reveal');
+    });
+  }
+
+  function renderUnbox(){
+    const s=document.querySelector('[data-scene="unbox"]');
+    if(!s)return;
+    const p=progress(s);
+    const spin=ease(clamp(p/.48));
+    const open=ease(clamp((p-.42)/.28));
+    const exit=ease(clamp((p-.78)/.22));
+    const lift=ease(clamp((p-.62)/.38));
+    const reduced=matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+    // Closed first, then turns while the scroll builds, then all four top flaps open.
+    const turns=reduced?0:(spin*560 + open*80);
+    s.style.setProperty('--box-ry',`${-28+turns}deg`);
+    s.style.setProperty('--box-rx',`${-12+Math.sin(spin*Math.PI)*10-open*5}deg`);
+    s.style.setProperty('--box-rz',`${Math.sin(spin*Math.PI*2)*2.5}deg`);
+    s.style.setProperty('--flap-front',`${90-open*202}deg`);
+    s.style.setProperty('--flap-back',`${90-open*202}deg`);
+    s.style.setProperty('--flap-left',`${-90+open*202}deg`);
+    s.style.setProperty('--flap-right',`${-90+open*202}deg`);
+    s.style.setProperty('--box-scale',`${1+open*.12-exit*.2}`);
+    s.style.setProperty('--box-stage-y',`${5-lift*15}vh`);
+    s.style.setProperty('--box-stage-scale',`${1+open*.08-exit*.1}`);
+    s.style.setProperty('--box-stage-opacity',`${1-exit}`);
+    s.style.setProperty('--box-stage-blur',`${exit*8}px`);
+    s.style.setProperty('--box-shadow-scale',`${1+open*.18-exit*.3}`);
+    s.style.setProperty('--box-shadow-opacity',`${.72-open*.18-exit*.54}`);
+    s.style.setProperty('--box-glow',`${.35+open*.7}`);
+    s.style.setProperty('--box-copy-opacity',`${1-clamp((p-.30)/.23)}`);
+    s.style.setProperty('--box-copy-y',`${clamp((p-.30)/.23)*-24}px`);
+    s.style.setProperty('--unbox-progress',`${p*100}%`);
+    document.body.style.setProperty('--unbox-nav-opacity',`${clamp((p-.82)/.15)}`);
+
+    let stage=0, label='SEALED';
+    if(p>=.18){stage=1;label='TURNING';}
+    if(p>=.46){stage=2;label='OPENING';}
+    if(p>=.78){stage=3;label='ENTERING';}
+    const stat=s.querySelector('.phf-unbox-status b');
+    const num=s.querySelector('.phf-unbox-status span');
+    if(stat)stat.textContent=label;
+    if(num)num.textContent=String(stage+1).padStart(2,'0');
+    if(stage!==phfLastUnboxStage){
+      if(stage===1)tone('spin');
+      if(stage===2)tone('open');
+      if(stage===3)tone('reveal');
+      phfLastUnboxStage=stage;
+    }
   }
 
   function renderHero(){
@@ -167,6 +258,17 @@ if (menuBtn && mobile) {
       if(p>=.88) text='Finished hardwood';
       label.textContent=text;
     }
+    let portalStage=0;
+    if(p>=.24)portalStage=1;
+    if(p>=.40)portalStage=2;
+    if(p>=.65)portalStage=3;
+    if(p>=.88)portalStage=4;
+    if(portalStage!==phfLastPortalStage){
+      if(portalStage===1)tone('open');
+      if(portalStage===3)tone('spin');
+      if(portalStage===4)tone('reveal');
+      phfLastPortalStage=portalStage;
+    }
   }
 
 
@@ -180,9 +282,39 @@ if (menuBtn && mobile) {
     const middle=s.querySelector('.phf-story-middle');
     const after=s.querySelector('.phf-story-after');
 
+    // Opening beat: the real project first appears as one compact square card.
+    // The first part of the scroll opens that card into the existing story layout,
+    // then the original BEFORE -> IN PROGRESS -> AFTER sequence continues.
+    const intro=ease(clamp(p/.16));
+    const isMobile=innerWidth<=760;
+    const isTablet=innerWidth<=1050;
+    const startW=Math.min(isMobile?210:240,innerWidth*.62);
+    const targetW=isMobile?Math.min(innerWidth*.68,330):(isTablet?Math.min(innerWidth*.37,390):Math.min(innerWidth*.31,420));
+    const targetH=targetW*4/3;
+    const cardW=startW+(targetW-startW)*intro;
+    const cardH=startW+(targetH-startW)*intro;
+    const targetLeft=isMobile?50:(isTablet?56:52);
+    const targetTop=isMobile?45:50;
+    const cardLeft=50+(targetLeft-50)*intro;
+    const cardTop=50+(targetTop-50)*intro;
+    const radius=34+(isMobile?24:30-34)*intro;
+
+    [before,middle,after].forEach(photo=>{
+      if(!photo)return;
+      photo.style.width=`${cardW}px`;
+      photo.style.height=`${cardH}px`;
+      photo.style.aspectRatio='auto';
+      photo.style.left=`${cardLeft}%`;
+      photo.style.top=`${cardTop}%`;
+      photo.style.borderRadius=`${radius}px`;
+    });
+    s.style.setProperty('--story-copy-opacity',clamp((intro-.28)/.72));
+    s.style.setProperty('--story-ui-opacity',clamp((intro-.42)/.58));
+    s.style.setProperty('--story-box-label-opacity',1-clamp(intro/.72));
+
     // Long holds at each stage, with smooth cinematic crossfades between them.
-    const toMiddle=ease(clamp((p-.25)/.13));
-    const toAfter=ease(clamp((p-.57)/.13));
+    const toMiddle=ease(clamp((p-.34)/.13));
+    const toAfter=ease(clamp((p-.64)/.13));
 
     const beforeOpacity=1-toMiddle;
     const middleOpacity=toMiddle*(1-toAfter);
@@ -190,23 +322,28 @@ if (menuBtn && mobile) {
 
     if(before){
       before.style.opacity=beforeOpacity;
-      before.style.transform=`translate(-50%,-50%) scale(${1.01+p*.018}) translate3d(0,${p*-5}px,0)`;
+      before.style.transform=`translate(-50%,-50%) scale(${1.0+intro*.01+p*.01}) translate3d(0,${p*-4}px,0)`;
       before.style.filter=`blur(${toMiddle*1.5}px)`;
     }
     if(middle){
       middle.style.opacity=middleOpacity;
-      middle.style.transform=`translate(-50%,-50%) scale(${1.025-toMiddle*.012+toAfter*.008}) translate3d(0,${(1-toMiddle)*8-toAfter*4}px,0)`;
+      middle.style.transform=`translate(-50%,-50%) scale(${1.02-toMiddle*.01+toAfter*.006}) translate3d(0,${(1-toMiddle)*8-toAfter*4}px,0)`;
       middle.style.filter=`blur(${Math.abs(.5-middleOpacity)*1.6}px)`;
     }
     if(after){
       after.style.opacity=afterOpacity;
-      after.style.transform=`translate(-50%,-50%) scale(${1.02-toAfter*.01}) translate3d(0,${(1-toAfter)*8}px,0)`;
+      after.style.transform=`translate(-50%,-50%) scale(${1.015-toAfter*.008}) translate3d(0,${(1-toAfter)*8}px,0)`;
       after.style.filter=`blur(${(1-toAfter)*1.4}px)`;
     }
 
     let stage=0;
-    if(p>=.38)stage=1;
-    if(p>=.70)stage=2;
+    if(p>=.47)stage=1;
+    if(p>=.77)stage=2;
+    if(stage!==phfLastProjectStage){
+      if(stage===1)tone('open');
+      if(stage===2)tone('reveal');
+      phfLastProjectStage=stage;
+    }
     const titles=['Before.','In progress.','Finished.'];
     const captions=[
       'The room before the transformation begins.',
@@ -275,6 +412,7 @@ if (menuBtn && mobile) {
   function render(){
     ticking=false;
     if(nav)nav.classList.toggle('scrolled',scrollY>50);
+    renderUnbox();
     renderHero();
     renderMaterial();
     renderServices();

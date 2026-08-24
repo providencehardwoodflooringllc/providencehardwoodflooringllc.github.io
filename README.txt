@@ -23,3 +23,5 @@ The HTML pages have already been changed to load styles.css, app.js, and logo.jp
 QUOTE FORM:
 The contact form remains configured for Dannywinz19@gmail.com.
 After the site is live, submit one test request and complete the FormSubmit activation email before relying on the form.
+
+Final pass: project story now opens from a compact box into the existing scroll-locked transformation; navigation logo is fully visible and opaque.
